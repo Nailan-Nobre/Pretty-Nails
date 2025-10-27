@@ -27,8 +27,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   // Mostra mensagem de carregamento (usando modal normal para permitir allowOutsideClick)
   Swal.fire({
-    title: 'Conectando com o servidor',
-    text: 'Aguarde para usar o sistema',
+    title: 'Conectando ao servidor',
+    text: 'Por favor, aguarde enquanto estabelecemos a conexão...',
     allowOutsideClick: false,
     showConfirmButton: false,
     didOpen: () => {
@@ -43,8 +43,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (isConnected) {
       Swal.fire({
-        title: 'Conectado com o servidor!',
-        text: 'Já pode usar o sistema!',
+        title: 'Conexão estabelecida!',
+        text: 'Você já pode fazer login ou criar sua conta.',
         icon: 'success',
         toast: true,
         position: isMobile ? 'top' : 'bottom-end',
@@ -56,8 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   } catch (error) {
     Swal.fire({
-      title: 'Modo Offline',
-      text: 'Sistema funcionando em modo local. Algumas funcionalidades podem estar limitadas.',
+      title: 'Servidor indisponível',
+      text: 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.',
       icon: 'warning',
       toast: true,
       position: isMobile ? 'top' : 'bottom-end',
@@ -86,8 +86,8 @@ async function adicionarUsuario() {
   if (campoSenha.length < 6) {
     Swal.fire({
       icon: 'warning',
-      title: 'Atenção',
-      text: 'A senha deve ter pelo menos 6 caracteres.',
+      title: 'Senha muito curta',
+      text: 'Sua senha precisa ter pelo menos 6 caracteres para garantir a segurança da sua conta.',
       toast: true,
       position: toastPosition,
       timer: 3000,
@@ -101,8 +101,8 @@ async function adicionarUsuario() {
   if (!emailRegex.test(campoEmail)) {
     Swal.fire({
       icon: 'warning',
-      title: 'Atenção',
-      text: 'Por favor, insira um email válido.',
+      title: 'Email inválido',
+      text: 'Por favor, insira um endereço de email válido (exemplo: seunome@email.com).',
       toast: true,
       position: toastPosition,
       timer: 3000,
@@ -115,8 +115,8 @@ async function adicionarUsuario() {
   if (campoTelefone && !validarTelefone(campoTelefone)) {
     Swal.fire({
       icon: 'warning',
-      title: 'Atenção',
-      text: 'Telefone deve estar no formato (xx)xxxxx-xxxx.',
+      title: 'Telefone inválido',
+      text: 'O telefone deve estar no formato (xx)xxxxx-xxxx. Exemplo: (89)99999-9999.',
       toast: true,
       position: toastPosition,
       timer: 3000,
@@ -129,8 +129,8 @@ async function adicionarUsuario() {
   if (!campoNome || !campoEmail || !campoSenha || !campoTelefone || !campoEstado || !campoCidade || !campoTipo) {
     Swal.fire({
       icon: 'warning',
-      title: 'Atenção',
-      text: 'Preencha todos os campos obrigatórios.',
+      title: 'Campos incompletos',
+      text: 'Por favor, preencha todos os campos obrigatórios para criar sua conta.',
       toast: true,
       position: toastPosition,
       timer: 3000,
@@ -153,7 +153,7 @@ async function adicionarUsuario() {
     // Mostra loading (usando modal normal)
     Swal.fire({
       title: 'Criando sua conta...',
-      text: 'Aguarde um momento',
+      text: 'Aguarde enquanto processamos seu cadastro',
       allowOutsideClick: false,
       showConfirmButton: false,
       didOpen: () => {
@@ -177,14 +177,41 @@ async function adicionarUsuario() {
     console.log('Resposta do servidor:', responseData);
 
     if (!resposta.ok) {
-      throw new Error(responseData.error || responseData.message || "Erro ao cadastrar usuário.");
+      // Trata diferentes tipos de erro de forma específica
+      let mensagemErro = "Não foi possível criar sua conta. Por favor, tente novamente.";
+      
+      if (resposta.status === 400) {
+        // Erro de validação
+        if (responseData.error?.toLowerCase().includes('email')) {
+          mensagemErro = "Este email já está cadastrado. Tente fazer login ou use outro email.";
+        } else if (responseData.error?.toLowerCase().includes('senha')) {
+          mensagemErro = "A senha informada não atende aos requisitos de segurança.";
+        } else if (responseData.error?.toLowerCase().includes('telefone')) {
+          mensagemErro = "O número de telefone informado já está em uso ou é inválido.";
+        } else {
+          mensagemErro = responseData.error || responseData.message || "Alguns dados informados são inválidos. Verifique e tente novamente.";
+        }
+      } else if (resposta.status === 409) {
+        // Conflito - usuário já existe
+        mensagemErro = "Já existe uma conta cadastrada com este email. Tente fazer login.";
+      } else if (resposta.status === 500) {
+        // Erro do servidor
+        mensagemErro = "Ocorreu um problema em nosso servidor. Por favor, tente novamente em alguns instantes.";
+      } else if (resposta.status === 503) {
+        // Serviço indisponível
+        mensagemErro = "Nosso sistema está temporariamente indisponível. Tente novamente em alguns minutos.";
+      } else {
+        mensagemErro = responseData.error || responseData.message || mensagemErro;
+      }
+      
+      throw new Error(mensagemErro);
     }
 
   Swal.fire({
     title: 'Confirme seu email',
     html: `<div style='display:flex;flex-direction:column;align-items:center;'>
-      <p style='font-size:1.1rem;margin-bottom:20px;'>Um email foi enviado para <b>${campoEmail}</b>.<br>Por favor, acesse seu email para confirmar o cadastro.</p>
-      <button id="ja-verifiquei" style='background:#FF6B6B;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-top:10px;border:none;cursor:pointer;display:inline-block;'>Já verifiquei</button>
+      <p style='font-size:1.1rem;margin-bottom:20px;'>Enviamos um email de confirmação para <b>${campoEmail}</b>.<br><br>Por favor, acesse sua caixa de entrada e clique no link de confirmação para ativar sua conta.</p>
+      <button id="ja-verifiquei" style='background:#FF6B6B;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-top:10px;border:none;cursor:pointer;display:inline-block;'>Já confirmei meu email</button>
       </div>`,
     showConfirmButton: false,
     allowOutsideClick: false,
@@ -216,10 +243,22 @@ async function adicionarUsuario() {
     container.classList.remove('right-panel-active');
 
   } catch (error) {
+    // Trata erros de conexão de forma específica
+    let mensagemErro = error.message;
+    let tituloErro = 'Erro no cadastro';
+    
+    if (error.name === 'TypeError' || error.message.includes('fetch')) {
+      tituloErro = 'Sem conexão';
+      mensagemErro = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.';
+    } else if (error.message.includes('timeout')) {
+      tituloErro = 'Tempo esgotado';
+      mensagemErro = 'A conexão demorou muito para responder. Verifique sua internet e tente novamente.';
+    }
+    
     Swal.fire({
       icon: 'error',
-      title: 'Erro',
-      text: error.message,
+      title: tituloErro,
+      text: mensagemErro,
       toast: true,
       position: toastPosition,
       timer: 4000,
@@ -242,8 +281,8 @@ async function loginUsuario() {
   if (!campoEmail || !campoSenha) {
     Swal.fire({
       icon: 'warning',
-      title: 'Atenção',
-      text: 'Preencha todos os campos obrigatórios.',
+      title: 'Campos incompletos',
+      text: 'Por favor, preencha seu email e senha para fazer login.',
       toast: true,
       position: toastPosition,
       timer: 3000,
@@ -257,8 +296,8 @@ async function loginUsuario() {
   if (!emailRegex.test(campoEmail)) {
     Swal.fire({
       icon: 'warning',
-      title: 'Atenção',
-      text: 'Por favor, insira um email válido.',
+      title: 'Email inválido',
+      text: 'Por favor, insira um endereço de email válido.',
       toast: true,
       position: toastPosition,
       timer: 3000,
@@ -277,8 +316,8 @@ async function loginUsuario() {
   try {
     // Mostra loading (usando modal normal)
     Swal.fire({
-      title: 'Fazendo login...',
-      text: 'Aguarde um momento',
+      title: 'Entrando...',
+      text: 'Verificando suas credenciais',
       allowOutsideClick: false,
       showConfirmButton: false,
       didOpen: () => {
@@ -302,7 +341,37 @@ async function loginUsuario() {
     console.log('Resposta de login:', respostaJson);
 
     if (!resposta.ok) {
-      throw new Error(respostaJson.error || respostaJson.message || "Email ou senha inválidos.");
+      // Trata diferentes tipos de erro de forma específica
+      let mensagemErro = "Não foi possível fazer login. Por favor, tente novamente.";
+      
+      if (resposta.status === 401 || resposta.status === 403) {
+        // Não autorizado ou proibido
+        if (respostaJson.error?.toLowerCase().includes('email') && respostaJson.error?.toLowerCase().includes('confirmado')) {
+          mensagemErro = "Seu email ainda não foi confirmado. Por favor, verifique sua caixa de entrada e clique no link de confirmação que enviamos.";
+        } else if (respostaJson.error?.toLowerCase().includes('senha')) {
+          mensagemErro = "A senha informada está incorreta. Verifique e tente novamente.";
+        } else if (respostaJson.error?.toLowerCase().includes('email')) {
+          mensagemErro = "Não encontramos uma conta com este email. Verifique o email digitado ou crie uma nova conta.";
+        } else {
+          mensagemErro = "Email ou senha incorretos. Por favor, verifique seus dados e tente novamente.";
+        }
+      } else if (resposta.status === 404) {
+        // Não encontrado
+        mensagemErro = "Não encontramos uma conta com este email. Verifique o email digitado ou crie uma nova conta.";
+      } else if (resposta.status === 429) {
+        // Muitas tentativas
+        mensagemErro = "Você fez muitas tentativas de login. Por favor, aguarde alguns minutos antes de tentar novamente.";
+      } else if (resposta.status === 500) {
+        // Erro do servidor
+        mensagemErro = "Ocorreu um problema em nosso servidor. Por favor, tente novamente em alguns instantes.";
+      } else if (resposta.status === 503) {
+        // Serviço indisponível
+        mensagemErro = "Nosso sistema está temporariamente indisponível. Tente novamente em alguns minutos.";
+      } else {
+        mensagemErro = respostaJson.error || respostaJson.message || mensagemErro;
+      }
+      
+      throw new Error(mensagemErro);
     }
     const { user, access_token } = respostaJson;
 
@@ -340,10 +409,22 @@ async function loginUsuario() {
     }, 2000);
 
   } catch (error) {
+    // Trata erros de conexão de forma específica
+    let mensagemErro = error.message;
+    let tituloErro = 'Erro no login';
+    
+    if (error.name === 'TypeError' || error.message.includes('fetch')) {
+      tituloErro = 'Sem conexão';
+      mensagemErro = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.';
+    } else if (error.message.includes('timeout')) {
+      tituloErro = 'Tempo esgotado';
+      mensagemErro = 'A conexão demorou muito para responder. Verifique sua internet e tente novamente.';
+    }
+    
     Swal.fire({
       icon: 'error',
-      title: 'Erro',
-      text: error.message,
+      title: tituloErro,
+      text: mensagemErro,
       toast: true,
       position: toastPosition,
       timer: 4000,

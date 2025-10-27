@@ -81,7 +81,7 @@ async function carregarEstados() {
         });
     } catch (error) {
         console.error("Erro ao carregar estados:", error);
-        alert("Não foi possível carregar os estados. Por favor, tente novamente mais tarde.");
+        alert("Não foi possível carregar a lista de estados. Por favor, verifique sua conexão com a internet e recarregue a página.");
     }
 }
 
@@ -110,7 +110,7 @@ async function carregarCidades() {
         cidadeSelect.disabled = false;
     } catch (error) {
         console.error("Erro ao carregar cidades:", error);
-        cidadeSelect.innerHTML = '<option value="" disabled selected>Erro ao carregar cidades</option>';
+        cidadeSelect.innerHTML = '<option value="" disabled selected>Erro ao carregar. Tente novamente</option>';
     }
 }
 
@@ -180,7 +180,7 @@ function mostrarErroTelefone(input) {
     const erroDiv = document.createElement('div');
     erroDiv.id = 'telefone-erro-msg';
     erroDiv.className = 'erro-telefone';
-    erroDiv.textContent = 'Formato inválido. Use: (xx)xxxxx-xxxx';
+    erroDiv.textContent = 'Formato inválido. Use o formato: (XX)XXXXX-XXXX';
     
     // Insere após o campo de telefone
     input.parentNode.insertAdjacentElement('afterend', erroDiv);
