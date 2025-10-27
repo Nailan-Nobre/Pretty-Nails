@@ -1,3 +1,32 @@
+function mostrarAvisoDesenvolvimento() {
+    Swal.fire({
+        title: '🚧 Tela em Desenvolvimento',
+        html: `
+            <p style="font-size: 16px; color: #666; margin: 10px 0;">
+                Esta funcionalidade está sendo desenvolvida.
+            </p>
+            <p style="font-size: 14px; color: #888;">
+                Algumas funcionalidades podem não estar disponíveis ou apresentar comportamento instável.
+            </p>
+        `,
+        icon: 'info',
+        confirmButtonText: 'Entendi',
+        confirmButtonColor: '#d4a574',
+        backdrop: true,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal-dev-warning',
+            title: 'swal-dev-title',
+            htmlContainer: 'swal-dev-text'
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    mostrarAvisoDesenvolvimento();
+});
+
+
 // Configuração dos temas - carregado dinamicamente do JSON
 let temasConfig = {};
 
