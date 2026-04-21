@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/cadastro-e-login/cadastro-e-login.html"
+    }
+  ]
+}
