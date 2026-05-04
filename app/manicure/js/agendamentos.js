@@ -18,7 +18,7 @@ function renderSolicitacoes(agendamentos) {
 
     agendamentos.forEach(agendamento => {
         const cliente = agendamento.cliente || {
-            nome: 'Cliente',
+            nome: agendamento.cliente_nome || 'Cliente',
             foto: 'imagens/user.png'
         };
 
@@ -124,7 +124,7 @@ function renderAgendamentos(containerId, agendamentos, type) {
 
     agendamentos.forEach(agendamento => {
         const cliente = agendamento.cliente || {
-            nome: 'Cliente',
+            nome: agendamento.cliente_nome || 'Cliente',
             foto: 'imagens/user.png'
         };
 
@@ -245,7 +245,7 @@ function setupActionButtonsTabs(containerId, type) {
 }
 
 async function handleAgendamentoAction(id, action, type) {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
         showNotification('Faça login para continuar', 'error');
         return;
@@ -299,7 +299,7 @@ function getActionSuccessMessage(action) {
 
 // Função para carregar todos os agendamentos das tabs
 async function loadAgendamentos() {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (!token) {
         showNotification('Faça login para ver seus agendamentos', 'error');
         window.location.href = 'login.html';
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('pendentes-container').classList.remove('hidden');
     } else {
         // Página antiga: só solicitações pendentes
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (!token) {
             showNotification('Faça login para ver suas solicitações', 'error');
             window.location.href = 'login.html';

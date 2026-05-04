@@ -16,7 +16,7 @@ class CalendarioAgendamentos {
     async inicializar() {
         try {
             // Verificar se usuário está logado
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             if (!token) {
                 window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
                 return;
@@ -33,7 +33,7 @@ class CalendarioAgendamentos {
             this.renderizarCalendario();
 
             // Carregar dados do usuário na sidebar
-            this.carregarDadosUsuario();
+            await this.carregarDadosUsuario();
         } catch (error) {
             console.error('Erro ao inicializar calendário:', error);
             this.mostrarErro('Erro ao carregar o calendário');
@@ -62,19 +62,33 @@ class CalendarioAgendamentos {
         });
     }
 
-    carregarDadosUsuario() {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        if (userData.nome) {
-            const userNameEl = document.getElementById('user-name');
-            if (userNameEl) {
-                userNameEl.textContent = userData.nome;
+    async carregarDadosUsuario() {
+        const token = sessionStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${window.API_BASE_URL}/auth/profile`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) return;
+
+            const payload = await response.json();
+            const userData = payload.user || payload;
+            if (userData.nome) {
+                const userNameEl = document.getElementById('user-name');
+                if (userNameEl) {
+                    userNameEl.textContent = userData.nome;
+                }
             }
+        } catch (error) {
+            console.error('Erro ao carregar dados do usuário:', error);
         }
     }
 
     async buscarTodosAgendamentos() {
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             if (!token) {
                 throw new Error('Token não encontrado');
             }
@@ -91,8 +105,6 @@ class CalendarioAgendamentos {
                 ...(confirmados.agendamentos || []),
                 ...(historico.agendamentos || [])
             ];
-
-            console.log('Agendamentos carregados:', this.agendamentos);
         } catch (error) {
             console.error('Erro ao buscar agendamentos:', error);
             this.agendamentos = [];
@@ -100,7 +112,7 @@ class CalendarioAgendamentos {
     }
 
     async fazerRequisicao(endpoint) {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         const response = await fetch(`${window.API_BASE_URL}${endpoint}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -258,7 +270,7 @@ class CalendarioAgendamentos {
 
     async atualizarStatusAgendamento(agendamentoId, novoStatus) {
         try {
-            const token = localStorage.getItem('token');
+            const token = sessionStorage.getItem('token');
             const response = await fetch(`${window.API_BASE_URL}/api/agendamentos/${agendamentoId}/status`, {
                 method: 'PATCH',
                 headers: {
@@ -312,8 +324,7 @@ class CalendarioAgendamentos {
 
 // Função de logout global
 function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
     window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
 }
 

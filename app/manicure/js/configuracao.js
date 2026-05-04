@@ -1,11 +1,6 @@
 // Configurações - Manicure
 document.addEventListener("DOMContentLoaded", function() {
-    // Carregar nome do usuário
-    const userName = localStorage.getItem("userName") || "Manicure";
-    const userNameElement = document.getElementById("user-name");
-    if (userNameElement) {
-        userNameElement.textContent = userName.split(" ")[0]; // Primeiro nome apenas
-    }
+    loadUserName();
 
     // Inicializar sistema de tema
     const themeManager = initTheme();
@@ -63,6 +58,32 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+async function loadUserName() {
+    const userNameElement = document.getElementById("user-name");
+    const token = sessionStorage.getItem('token');
+
+    if (!userNameElement) return;
+
+    if (!token) {
+        userNameElement.textContent = 'Manicure';
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar perfil');
+
+        const payload = await response.json();
+        const user = payload.user || payload;
+        userNameElement.textContent = (user.nome || 'Manicure').split(' ')[0];
+    } catch (error) {
+        userNameElement.textContent = 'Manicure';
+    }
+}
+
 // Função para mostrar feedback visual de mudança de tema
 function showThemeFeedback(theme) {
     const feedback = document.createElement('div');
@@ -109,7 +130,7 @@ function showThemeFeedback(theme) {
 // Função de logout (compartilhada com outras telas)
 function logout() {
     if (confirm("Tem certeza que deseja sair?")) {
-        localStorage.clear();
+        sessionStorage.removeItem('token');
         window.location.href = "../../cadastro-e-login/cadastro-e-login.html";
     }
 }

@@ -137,20 +137,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const copyLinkBtn = document.getElementById('copyLinkBtn');
 
     // Verificar autenticação
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
-    const userType = localStorage.getItem('userType');
+    const token = sessionStorage.getItem('token');
 
-    if (!token || !userId) {
+    if (!token) {
         window.location.href = 'login.html';
         return;
     }
 
+    let currentSlug = '';
+
+    function slugifyName(text) {
+        return String(text || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
     // Gerar link de compartilhamento
-    function generateShareLink() {
+    function generateShareLink({ slug, nome }) {
         // Usa o domínio configurado no config.js
-        const baseUrl = window.FRONTEND_URL || 'https://fib-pretty-nails.vercel.app';
-        return `${baseUrl}/app/cliente/perfil-manicure.html?id=${userId}`;
+        const baseUrl = window.FRONTEND_URL || 'http://localhost:3000';
+        const finalSlug = slug || slugifyName(nome);
+        if (!finalSlug) {
+            return `${baseUrl}/agendamento`;
+        }
+        return `${baseUrl}/agendamento/${encodeURIComponent(finalSlug)}`;
     }
 
     // Função para adicionar novo time-slot
@@ -210,7 +223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Carregar dados do perfil
     async function loadProfileData() {
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/usuario/${userId}`, {
+            const response = await fetch(`${API_BASE_URL}/auth/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -218,7 +231,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!response.ok) throw new Error('Erro ao carregar perfil');
 
-            const data = await response.json();
+            const payload = await response.json();
+            const data = payload.user || payload;
 
             // Preencher dados na tela (com tratamento correto da foto)
             foto.src = data.foto ? `${data.foto}?${Date.now()}` : 'imagens/user.png';
@@ -226,6 +240,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             email.innerHTML = `<i class="fas fa-envelope"></i> ${data.email || 'Email não informado'}`;
             telefone.innerHTML = `<i class="fas fa-phone"></i> ${data.telefone || 'Telefone não informado'}`;
             endereco.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${data.cidade || 'Cidade não informada'}, ${data.estado || 'Estado não informado'}`;
+            currentSlug = data.slug || '';
 
             // Preencher dados do modal (com tratamento correto da foto)
             editPhotoPreview.src = data.foto ? `${data.foto}?${Date.now()}` : 'imagens/user.png';
@@ -338,7 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Preencher dados no modal de compartilhamento
         sharePhoto.src = foto.src;
         shareName.textContent = nome.textContent;
-        shareLink.value = generateShareLink();
+        shareLink.value = generateShareLink({ slug: currentSlug, nome: nome.textContent });
         
         toggleModal(shareModal, true);
     });
@@ -502,10 +517,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const updatedData = await response.json();
             showNotification('Perfil atualizado com sucesso!', 'success');
-
-            // Atualizar localStorage se necessário
-            if (updatedData.nome) localStorage.setItem('userName', updatedData.nome);
-            if (updatedData.foto) localStorage.setItem('userFoto', updatedData.foto);
 
             toggleModal(editModal, false);
             loadProfileData(); // Recarregar dados

@@ -7,8 +7,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     const mensagemDiv = document.getElementById('mensagem-usuario');
     const nomeUsuarioDiv = document.getElementById('user-name');
     const avatarUsuario = document.getElementById('user_avatar');
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
+    const token = sessionStorage.getItem('token');
 
     // Função para exibir mensagem apenas no console e na tela
     function exibirMensagemNoConsole(mensagem) {
@@ -20,14 +19,14 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // Verificação completa de autenticação
-    if (!token || !userId) {
+    if (!token) {
         exibirMensagemNoConsole('Acesso restrito. Faça login para continuar.');
         window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
         return;
     }
 
     try {
-        const resposta = await fetch(`${API_BASE_URL}/auth/usuario/${userId}`, {
+        const resposta = await fetch(`${API_BASE_URL}/auth/profile`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -41,7 +40,8 @@ document.addEventListener('DOMContentLoaded', async function () {
             return;
         }
 
-        const usuario = await resposta.json();
+        const payload = await resposta.json();
+        const usuario = payload.user || payload;
 
         // Exibir nome
         const primeiroNome = usuario.nome ? usuario.nome.split(' ')[0] : 'Usuário';
@@ -102,7 +102,7 @@ document.addEventListener('click', function (event) {
 
 // Logout
 document.getElementById('logout_btn').addEventListener('click', function () {
-    localStorage.clear();
+    sessionStorage.removeItem('token');
     window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
 });
 
@@ -127,6 +127,6 @@ window.addEventListener('resize', handleResponsiveSidebar);
 
 // Função logout para ser chamada pelo HTML
 function logout() {
-    localStorage.clear();
+    sessionStorage.removeItem('token');
     window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
 }

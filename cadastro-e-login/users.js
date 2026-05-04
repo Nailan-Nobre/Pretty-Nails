@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           method: 'HEAD', // Usa HEAD para não carregar o corpo da resposta
           timeout: 5000 
         });
-        if (response.ok || response.status === 405) { // 405 = Method Not Allowed é aceitável
+        if (response) {
           return true;
         }
       } catch (error) {
@@ -80,7 +80,7 @@ async function adicionarUsuario() {
   const campoTelefone = document.querySelector("#telefone")?.value?.trim() || "";
   const campoEstado = document.querySelector("#estado")?.value || "";
   const campoCidade = document.querySelector("#cidade")?.value || "";
-  const campoTipo = document.querySelector("#tipo")?.value || "";
+  const campoTipo = "MANICURE";
 
   // Validação de senha
   if (campoSenha.length < 6) {
@@ -126,7 +126,7 @@ async function adicionarUsuario() {
   }
 
   // Validação de campos obrigatórios
-  if (!campoNome || !campoEmail || !campoSenha || !campoTelefone || !campoEstado || !campoCidade || !campoTipo) {
+  if (!campoNome || !campoEmail || !campoSenha || !campoTelefone || !campoEstado || !campoCidade) {
     Swal.fire({
       icon: 'warning',
       title: 'Campos incompletos',
@@ -180,20 +180,19 @@ async function adicionarUsuario() {
       // Trata diferentes tipos de erro de forma específica
       let mensagemErro = "Não foi possível criar sua conta. Por favor, tente novamente.";
       
-      if (resposta.status === 400) {
+      if (resposta.status === 409) {
+        mensagemErro = responseData.error || "Já existe uma conta cadastrada com este email. Tente fazer login.";
+      } else if (resposta.status === 429 || responseData.error?.toLowerCase().includes('rate limit')) {
+        mensagemErro = responseData.error || "Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.";
+      } else if (resposta.status === 400) {
         // Erro de validação
-        if (responseData.error?.toLowerCase().includes('email')) {
-          mensagemErro = "Este email já está cadastrado. Tente fazer login ou use outro email.";
-        } else if (responseData.error?.toLowerCase().includes('senha')) {
+        if (responseData.error?.toLowerCase().includes('senha')) {
           mensagemErro = "A senha informada não atende aos requisitos de segurança.";
         } else if (responseData.error?.toLowerCase().includes('telefone')) {
           mensagemErro = "O número de telefone informado já está em uso ou é inválido.";
         } else {
           mensagemErro = responseData.error || responseData.message || "Alguns dados informados são inválidos. Verifique e tente novamente.";
         }
-      } else if (resposta.status === 409) {
-        // Conflito - usuário já existe
-        mensagemErro = "Já existe uma conta cadastrada com este email. Tente fazer login.";
       } else if (resposta.status === 500) {
         // Erro do servidor
         mensagemErro = "Ocorreu um problema em nosso servidor. Por favor, tente novamente em alguns instantes.";
@@ -208,25 +207,13 @@ async function adicionarUsuario() {
     }
 
   Swal.fire({
-    title: 'Confirme seu email',
-    html: `<div style='display:flex;flex-direction:column;align-items:center;'>
-      <p style='font-size:1.1rem;margin-bottom:20px;'>Enviamos um email de confirmação para <b>${campoEmail}</b>.<br><br>Por favor, acesse sua caixa de entrada e clique no link de confirmação para ativar sua conta.</p>
-      <button id="ja-verifiquei" style='background:#FF6B6B;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:bold;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-top:10px;border:none;cursor:pointer;display:inline-block;'>Já confirmei meu email</button>
-      </div>`,
-    showConfirmButton: false,
-    allowOutsideClick: false,
-    allowEscapeKey: true,
-    width: 350,
-    padding: '2em',
-    background: '#fff',
-    customClass: {
-      popup: 'swal2-center',
-    },
-    didRender: () => {
-      document.getElementById('ja-verifiquei').addEventListener('click', () => {
-        Swal.close();
-      });
-    }
+    icon: 'success',
+    title: 'Cadastro concluído',
+    text: 'Sua conta foi criada com sucesso. Agora você já pode entrar.',
+    toast: true,
+    position: toastPosition,
+    timer: 3000,
+    showConfirmButton: false
   });
 
     // Limpa os campos do formulário
@@ -236,8 +223,6 @@ async function adicionarUsuario() {
     document.querySelector("#telefone").value = "";
     document.querySelector("#estado").value = "";
     document.querySelector("#cidade").value = "";
-    document.querySelector("#tipo").value = "";
-
     // Volta para o formulário de login
     const container = document.getElementById('container');
     container.classList.remove('right-panel-active');
@@ -375,15 +360,8 @@ async function loginUsuario() {
     }
     const { user, access_token } = respostaJson;
 
-    // Armazena as informações do usuário no localStorage
-    localStorage.setItem("token", access_token);
-    localStorage.setItem("userId", user.id);
-    localStorage.setItem("userName", user.nome);
-    localStorage.setItem("userEmail", user.email);
-    localStorage.setItem("userTelefone", user.telefone || "");
-    localStorage.setItem("userEstado", user.estado || "");
-    localStorage.setItem("userCidade", user.cidade || "");
-    localStorage.setItem("userTipo", user.tipo);
+    // Mantém apenas a sessão temporária; dados do perfil são buscados no backend
+    sessionStorage.setItem("token", access_token);
 
     Swal.fire({
       icon: 'success',
@@ -401,11 +379,7 @@ async function loginUsuario() {
 
     // Redireciona baseado no tipo de usuário
     setTimeout(() => {
-      if (user.tipo === 'MANICURE') {
-        window.location.href = '../app/manicure/principal.html';
-      } else {
-        window.location.href = '../app/cliente/principal.html';
-      }
+      window.location.href = '../app/manicure/principal.html';
     }, 2000);
 
   } catch (error) {

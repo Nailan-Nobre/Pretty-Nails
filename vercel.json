@@ -3,6 +3,14 @@
     {
       "source": "/",
       "destination": "/cadastro-e-login/cadastro-e-login.html"
+    },
+    {
+      "source": "/agendamento",
+      "destination": "/agendamento/agendamento.html"
+    },
+    {
+      "source": "/agendamento/:slug",
+      "destination": "/agendamento/agendamento.html"
     }
   ]
 }

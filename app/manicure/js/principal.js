@@ -19,11 +19,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     const allFeedbacks = document.getElementById('allFeedbacks');
 
     // Verificar autenticação
-    const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
-    const userType = localStorage.getItem('userType');
+    const token = sessionStorage.getItem('token');
+    let userId = '';
+    let userType = '';
 
-    if (!token || !userId) {
+    if (!token) {
+        window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+        return;
+    }
+
+    try {
+        const profileResponse = await fetch(`${API_BASE_URL}/auth/profile`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!profileResponse.ok) {
+            window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+            return;
+        }
+
+        const profilePayload = await profileResponse.json();
+        const profile = profilePayload.user || profilePayload;
+        userId = profile.id;
+        userType = profile.tipo || 'MANICURE';
+
+        const userNameEl = document.getElementById('user-name');
+        if (userNameEl && profile.nome) {
+            userNameEl.textContent = profile.nome.split(' ')[0];
+        }
+
+        const avatarEl = document.getElementById('user_avatar');
+        if (avatarEl && profile.foto) {
+            avatarEl.src = profile.foto;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
         window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
         return;
     }
@@ -78,25 +111,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Função para testar conectividade com a API
     async function testAPIConnection() {
         try {
-            console.log('Testando conectividade com a API...');
             const response = await fetch(`${API_BASE_URL}/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
-            
-            console.log('Status da conexão:', response.status);
-            
+
             if (response.ok) {
-                console.log('✅ API está online');
                 return true;
             } else {
-                console.log('❌ API retornou erro:', response.status);
                 return false;
             }
         } catch (error) {
-            console.log('❌ Erro ao conectar com a API:', error.message);
             return false;
         }
     }
@@ -152,11 +179,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            console.log('Carregando estatísticas de agendamentos...');
-            console.log('Token:', token ? 'Presente' : 'Ausente');
-            console.log('UserId:', userId);
-            console.log('API_BASE_URL:', API_BASE_URL);
-            
             const response = await fetch(`${API_BASE_URL}/api/agendamentos/estatisticas`, {
                 method: 'GET',
                 headers: {
@@ -165,12 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            console.log('Response status estatísticas:', response.status);
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro na resposta:', errorText);
-                
                 if (response.status === 401) {
                     showEmptyChart('Erro de autenticação. Faça login novamente.');
                 } else {
@@ -180,14 +197,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = await response.json();
-            console.log('Dados de estatísticas recebidos:', data);
             
             if (data.success && data.estatisticas) {
-                console.log('✅ Atualizando gráfico com dados reais da API');
-                console.log('Labels:', data.estatisticas.labels);
-                console.log('Dados concluídos:', data.estatisticas.dadosConcluidos);
-                console.log('Dados cancelados:', data.estatisticas.dadosCancelados);
-                
                 // Verificar se há dados
                 const totalConcluidos = data.estatisticas.totalConcluidos || 0;
                 const totalCancelados = data.estatisticas.totalCancelados || 0;
@@ -198,13 +209,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updateChart(data.estatisticas.labels, data.estatisticas.dadosConcluidos, data.estatisticas.dadosCancelados);
                 }
             } else {
-                console.log('API retornou sucesso=false ou sem estatísticas');
-                console.log('Resposta completa:', data);
                 showEmptyChart('Erro ao carregar dados. Tente novamente.');
             }
 
         } catch (error) {
-            console.error('Erro ao carregar estatísticas:', error);
             showEmptyChart('Erro de conexão. Verifique sua internet.');
         }
     }
@@ -217,7 +225,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             grafico.data.datasets[1].data = dadosCancelados;
             grafico.options.plugins.title.text = 'Estatísticas de Agendamentos (Últimos 5 Meses)';
             grafico.update();
-            console.log('✅ Gráfico atualizado com dados reais');
             
             // Remover mensagem informativa se existir
             const messageElement = document.getElementById('chartMessage');
@@ -244,10 +251,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Função para carregar dados do histórico
     async function loadHistoricoData(ano) {
         try {
-            console.log('Carregando histórico para o ano:', ano);
-            console.log('Token:', token ? 'Presente' : 'Ausente');
-            console.log('UserId:', userId);
-            
             const response = await fetch(`${API_BASE_URL}/api/agendamentos/historico-estatisticas?ano=${ano}`, {
                 method: 'GET',
                 headers: {
@@ -256,12 +259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            console.log('Response status histórico:', response.status);
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Erro na resposta do histórico:', errorText);
-                
                 if (response.status === 401) {
                     showEmptyHistoricoChart('Erro de autenticação. Faça login novamente.');
                 } else {
@@ -271,10 +269,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = await response.json();
-            console.log('Dados de histórico recebidos:', data);
             
             if (data.success && data.historico) {
-                console.log('✅ Atualizando histórico com dados reais da API');
                 availableYears = data.historico.anosDisponiveis;
                 updateYearSelector(ano);
                 
@@ -290,13 +286,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     updateHistoricoStats(data.historico);
                 }
             } else {
-                console.log('API retornou sucesso=false ou sem histórico');
-                console.log('Resposta completa:', data);
                 showEmptyHistoricoChart('Erro ao carregar dados do histórico.');
             }
 
         } catch (error) {
-            console.error('Erro ao carregar histórico:', error);
             showEmptyHistoricoChart('Erro de conexão. Verifique sua internet.');
         }
     }
@@ -520,8 +513,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Função para carregar feedbacks
     async function loadFeedbacks() {
         try {
-            console.log('Carregando feedbacks para manicure:', userId);
-            
             const response = await fetch(`${API_BASE_URL}/feedback/manicure/${userId}`, {
                 method: 'GET',
                 headers: {
@@ -530,23 +521,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            console.log('Response status:', response.status);
-
             if (!response.ok) {
-                console.log('Erro na resposta:', response.status, response.statusText);
                 throw new Error(`Erro ao carregar feedbacks: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('Dados recebidos:', data);
             
             const feedbacks = data.feedbacks || [];
-            console.log('Feedbacks encontrados:', feedbacks.length);
 
             displayFeedbacks(feedbacks);
 
         } catch (error) {
-            console.error('Erro ao carregar feedbacks:', error);
             
             // Mostrar estado vazio em caso de erro
             displayFeedbacks([]);
@@ -588,8 +573,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Função para criar HTML do feedback
     function createFeedbackHTML(feedback) {
-        const clienteName = feedback.usuario?.nome || 'Cliente';
-        const clientePhoto = feedback.usuario?.foto || 'imagens/user.png';
+        const clienteName = feedback.cliente_nome || 'Cliente';
+        const clientePhoto = 'imagens/user.png';
         const stars = generateStars(feedback.estrelas);
         const date = formatDate(feedback.created_at);
         
@@ -678,7 +663,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Função para mostrar notificação de desenvolvimento
     function mostrarNotificacaoDesenvolvimento() {
-        console.log('Tela em desenvolvimento');
     }
 
     // Inicialização
@@ -689,8 +673,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Como chegamos até aqui, significa que temos token e userId (senão teria redirecionado)
     // Sempre carregar dados reais
-    console.log('Iniciando carregamento de dados reais...');
-    
     // Carregar estatísticas do gráfico sempre
     loadAgendamentosEstatisticas();
     
@@ -698,8 +680,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (workDaysContainer && workHoursContainer && servicesList) {
         loadProfileData();
         loadFeedbacks();
-    } else {
-        console.log('Elementos do perfil não encontrados, carregando apenas estatísticas');
     }
 
     // Event listeners para modal de histórico

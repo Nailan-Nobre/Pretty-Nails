@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agendamento</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="../config.js"></script>
+  <style>
+    :root {
+      --bg: #f6efe9;
+      --card: #fff8f3;
+      --text: #3b2f2a;
+      --muted: #7d665d;
+      --accent: #b85c38;
+      --accent-2: #f2a65a;
+      --line: rgba(59, 47, 42, 0.12);
+      --shadow: 0 18px 45px rgba(88, 50, 34, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(242,166,90,0.25), transparent 32%),
+        radial-gradient(circle at top right, rgba(184,92,56,0.18), transparent 28%),
+        linear-gradient(180deg, #fffaf6 0%, var(--bg) 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 20px 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: rgba(255, 248, 243, 0.88);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .cover {
+      padding: 34px;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(184, 92, 56, 0.12);
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1.02;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 44ch;
+      line-height: 1.6;
+    }
+
+    .manicure-card {
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(242,166,90,0.35), rgba(184,92,56,0.2));
+      object-fit: cover;
+      border: 1px solid var(--line);
+    }
+
+    .name {
+      font-size: 1.8rem;
+      margin: 0;
+    }
+
+    .meta {
+      color: var(--muted);
+      margin: 4px 0 0;
+      line-height: 1.5;
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .info-box, .form-box, .section-card {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px;
+    }
+
+    .info-label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.08em;
+    }
+
+    .info-value {
+      font-weight: 700;
+    }
+
+    .layout {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .section-card {
+      padding: 22px;
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 1.2rem;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid rgba(59,47,42,0.16);
+      border-radius: 16px;
+      padding: 13px 14px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+    }
+
+    textarea { min-height: 110px; resize: vertical; }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(184, 92, 56, 0.55);
+      box-shadow: 0 0 0 4px rgba(184, 92, 56, 0.1);
+    }
+
+    .button {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .button:hover { transform: translateY(-1px); }
+
+    .button-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      box-shadow: 0 12px 24px rgba(184, 92, 56, 0.24);
+    }
+
+    .button-ghost {
+      background: rgba(184, 92, 56, 0.08);
+      color: var(--accent);
+    }
+
+    .slots {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .slot {
+      border: 1px solid rgba(59,47,42,0.14);
+      border-radius: 14px;
+      padding: 11px 12px;
+      background: white;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .slot.selected {
+      border-color: rgba(184, 92, 56, 0.65);
+      box-shadow: 0 0 0 3px rgba(184, 92, 56, 0.1);
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(184, 92, 56, 0.08);
+      color: var(--text);
+      line-height: 1.5;
+      display: none;
+    }
+
+    .empty-state {
+      padding: 18px;
+      border: 1px dashed rgba(59,47,42,0.16);
+      border-radius: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+      .cover { min-height: auto; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { padding: 18px 14px 36px; }
+      .cover, .manicure-card, .section-card { padding: 18px; }
+      .info-grid, .slots { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <article class="panel cover">
+        <div>
+          <span class="badge">Agendamento público</span>
+          <h1>Reserve um horário com a manicure pelo slug da URL.</h1>
+          <p class="subtitle">
+            Esta tela lê o slug na rota, busca os dados da manicure no backend e envia o agendamento de verdade, incluindo os e-mails de cliente e manicure.
+          </p>
+        </div>
+
+        <div class="info-grid" id="topSummary">
+          <div class="info-box">
+            <span class="info-label">Slug</span>
+            <div class="info-value" id="slugValue">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Status</span>
+            <div class="info-value" id="statusValue">Carregando...</div>
+          </div>
+        </div>
+      </article>
+
+      <aside class="panel manicure-card">
+        <img id="avatar" class="avatar" src="https://via.placeholder.com/176x176?text=Pretty+Nails" alt="Foto da manicure" />
+        <div>
+          <h2 class="name" id="nomeManicure">Carregando...</h2>
+          <p class="meta" id="bioManicure">Buscando informações da manicure.</p>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-box">
+            <span class="info-label">Cidade</span>
+            <div class="info-value" id="cidadeManicure">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Avaliação</span>
+            <div class="info-value" id="estrelasManicure">0.0</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Dias de trabalho</span>
+            <div class="info-value" id="diasManicure">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Telefone</span>
+            <div class="info-value" id="telefoneManicure">-</div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="layout">
+      <div class="section-card">
+        <h3 class="section-title">Escolha o serviço e horário</h3>
+        <div class="form-grid">
+          <label>
+            Serviço
+            <select id="servicoSelect">
+              <option value="">Selecione um serviço</option>
+            </select>
+          </label>
+
+          <label>
+            Data
+            <input type="date" id="dataInput" />
+          </label>
+
+          <label>
+            Nome do cliente
+            <input type="text" id="clienteNome" placeholder="Seu nome" />
+          </label>
+
+          <label>
+            E-mail
+            <input type="email" id="clienteEmail" placeholder="voce@exemplo.com" />
+          </label>
+
+          <label>
+            CPF
+            <input type="text" id="clienteCpf" placeholder="00000000000" maxlength="11" />
+          </label>
+
+          <label>
+            Telefone
+            <input type="tel" id="clienteTelefone" placeholder="(00)00000-0000" maxlength="14" />
+          </label>
+
+          <label>
+            Observações
+            <textarea id="observacoes" placeholder="Informe alguma observação, se desejar."></textarea>
+          </label>
+
+          <div>
+            <h4 style="margin: 0 0 10px;">Horários disponíveis</h4>
+            <div class="slots" id="slotsContainer">
+              <div class="empty-state">Selecione uma manicure para carregar os horários.</div>
+            </div>
+          </div>
+
+          <button class="button button-primary" id="agendarBtn" type="button">Confirmar agendamento</button>
+          <button class="button button-ghost" id="recarregarBtn" type="button">Recarregar dados</button>
+
+          <div class="status" id="statusBox"></div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3 class="section-title">Resumo rápido</h3>
+        <div class="info-grid">
+          <div class="info-box">
+            <span class="info-label">Slug carregado</span>
+            <div class="info-value" id="resumoSlug">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Serviço escolhido</span>
+            <div class="info-value" id="resumoServico">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">E-mail do cliente</span>
+            <div class="info-value" id="resumoEmail">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Cliente</span>
+            <div class="info-value" id="resumoCliente">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Horário escolhido</span>
+            <div class="info-value" id="resumoHorario">-</div>
+          </div>
+          <div class="info-box">
+            <span class="info-label">Data escolhida</span>
+            <div class="info-value" id="resumoData">-</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 18px;" class="empty-state">
+          O botão de confirmar envia o agendamento para o backend, grava o e-mail do cliente e dispara os e-mails de confirmação.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="agendamento.js"></script>
+</body>
+</html>

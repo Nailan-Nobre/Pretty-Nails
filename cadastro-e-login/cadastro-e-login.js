@@ -27,7 +27,7 @@ window.addEventListener('orientationchange', () => {
 
 // Eventos para desktop
 signUpButton?.addEventListener('click', () => {
-  container.classList.add('right-panel-active');
+    container.classList.add('right-panel-active');
 });
 
 signInButton?.addEventListener('click', () => {
