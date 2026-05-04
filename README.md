@@ -1,6 +1,6 @@
 # Pretty Nails - Sistema de Agendamento para Manicures
 
-![Banner Pretty Nails](https://pretty-nails-landing-page.vercel.app/img/banner.png)
+![Banner Pretty Nails](https://nailan-nobre.github.io/banco-de-imagens/img/banner.png)
 
 Este projeto consiste em um sistema de agendamento para manicures, desenvolvido com o objetivo de facilitar o gerenciamento de reservas de horários e oferecer uma experiência prática para os clientes. O site permite aos usuários verificar disponibilidade, escolher serviços e agendar atendimentos de maneira simples e rápida.
 
