@@ -5,8 +5,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Função para testar diferentes endpoints
   async function testConnectivity() {
     const endpoints = [
-      `${FRONTEND_URL}/`,
-      `${FRONTEND_URL}/auth/login`, // teste de rota existente
+      `${API_BASE_URL}/`,
+      `${API_BASE_URL}/auth/login`, // teste de rota existente
     ];
     
     for (const endpoint of endpoints) {
@@ -161,7 +161,7 @@ async function adicionarUsuario() {
       }
     });
 
-    const resposta = await fetch(`${FRONTEND_URL}/auth/signup`, {
+    const resposta = await fetch(`${API_BASE_URL}/auth/signup`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -310,7 +310,7 @@ async function loginUsuario() {
       }
     });
 
-    const resposta = await fetch(`${FRONTEND_URL}/auth/login`, {
+    const resposta = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
