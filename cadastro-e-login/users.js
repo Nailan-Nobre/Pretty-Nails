@@ -1,70 +1,30 @@
 document.addEventListener("DOMContentLoaded", async () => {
   // Verifica se é mobile
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
-  
-  // Função para testar diferentes endpoints
-  async function testConnectivity() {
-    const endpoints = [
-      `${API_BASE_URL}/`,
-      `${API_BASE_URL}/auth/login`, // teste de rota existente
-    ];
-    
-    for (const endpoint of endpoints) {
-      try {
-        const response = await fetch(endpoint, { 
-          method: 'HEAD', // Usa HEAD para não carregar o corpo da resposta
-          timeout: 5000 
-        });
-        if (response) {
-          return true;
-        }
-      } catch (error) {
-        console.log(`Tentativa falhou para ${endpoint}:`, error.message);
+
+  if (window.API_BASE_URL && window.API_BASE_URL !== window.location.origin) {
+    Swal.fire({
+      title: 'Conectando ao servidor',
+      text: 'Por favor, aguarde enquanto estabelecemos a conexão...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
       }
-    }
-    return false;
-  }
-  
-  // Mostra mensagem de carregamento (usando modal normal para permitir allowOutsideClick)
-  Swal.fire({
-    title: 'Conectando ao servidor',
-    text: 'Por favor, aguarde enquanto estabelecemos a conexão...',
-    allowOutsideClick: false,
-    showConfirmButton: false,
-    didOpen: () => {
-      Swal.showLoading();
-    }
-  });
+    });
 
-  try {
-    const isConnected = await testConnectivity();
-    // Após sucesso, fecha o loading e mostra confirmação
-    Swal.close();
-
-    if (isConnected) {
+    setTimeout(() => {
+      Swal.close();
       Swal.fire({
-        title: 'Conexão estabelecida!',
+        title: 'Pronto para usar',
         text: 'Você já pode fazer login ou criar sua conta.',
         icon: 'success',
         toast: true,
         position: isMobile ? 'top' : 'bottom-end',
-        timer: 3000,
+        timer: 2500,
         showConfirmButton: false
       });
-    } else {
-      throw new Error('Nenhum endpoint respondeu');
-    }
-  } catch (error) {
-    Swal.fire({
-      title: 'Servidor indisponível',
-      text: 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.',
-      icon: 'warning',
-      toast: true,
-      position: isMobile ? 'top' : 'bottom-end',
-      timer: 5000,
-      showConfirmButton: false
-    });
-    console.error("Erro ao conectar com o servidor:", error);
+    }, 400);
   }
 });
 
