@@ -39,7 +39,9 @@ async function supabaseRequest(path, options = {}) {
 
   if (!response.ok) {
     const message = data?.msg || data?.error_description || data?.message || "Não foi possível concluir a requisição.";
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -271,6 +273,11 @@ async function adicionarUsuario() {
     let mensagemErro = error.message;
     let tituloErro = 'Erro no cadastro';
     
+    if (error.status === 503) {
+      tituloErro = 'Serviço indisponível';
+      mensagemErro = 'O Supabase está temporariamente indisponível. Tente novamente em alguns minutos.';
+    }
+
     if (error.name === 'TypeError' || error.message.includes('fetch')) {
       tituloErro = 'Sem conexão';
       mensagemErro = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.';
@@ -436,6 +443,11 @@ async function loginUsuario() {
     let mensagemErro = error.message;
     let tituloErro = 'Erro no login';
     
+    if (error.status === 503) {
+      tituloErro = 'Serviço indisponível';
+      mensagemErro = 'O Supabase está temporariamente indisponível. Tente novamente em alguns minutos.';
+    }
+
     if (error.name === 'TypeError' || error.message.includes('fetch')) {
       tituloErro = 'Sem conexão';
       mensagemErro = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.';
