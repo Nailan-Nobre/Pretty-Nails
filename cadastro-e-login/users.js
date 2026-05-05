@@ -7,6 +7,28 @@ function isSupabaseConfigured() {
   return Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
 }
 
+function getSupabaseClient() {
+  if (!window.supabase || !isSupabaseConfigured()) {
+    return null;
+  }
+
+  if (!window.__prettyNailsSupabaseClient) {
+    window.__prettyNailsSupabaseClient = window.supabase.createClient(
+      window.SUPABASE_URL,
+      window.SUPABASE_ANON_KEY,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: false
+        }
+      }
+    );
+  }
+
+  return window.__prettyNailsSupabaseClient;
+}
+
 function getSupabaseAuthHeaders() {
   return {
     apikey: window.SUPABASE_ANON_KEY,
@@ -356,17 +378,52 @@ async function loginUsuario() {
       }
     });
 
-    let respostaJson;
-
     if (isSupabaseConfigured()) {
-      respostaJson = await supabaseRequest("/auth/v1/token?grant_type=password", {
-        method: "POST",
-        body: {
-          email: campoEmail,
-          password: campoSenha
-        }
+      const supabaseClient = getSupabaseClient();
+      if (!supabaseClient) {
+        throw new Error('Cliente Supabase não inicializado.');
+      }
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: campoEmail,
+        password: campoSenha
       });
+
+      if (error) {
+        error.status = error.status || 401;
+        throw error;
+      }
+
+      const access_token = data?.session?.access_token || '';
+      const user = data?.user || {};
+      const nomeUsuario = user?.user_metadata?.nome || user?.email || campoEmail;
+
+      Swal.close();
+
+      if (access_token) {
+        sessionStorage.setItem('token', access_token);
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Login realizado com sucesso!',
+        text: `Bem-vindo(a), ${nomeUsuario}!`,
+        toast: true,
+        position: toastPosition,
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      document.querySelector("#login-email").value = "";
+      document.querySelector("#login-senha").value = "";
+
+      setTimeout(() => {
+        window.location.href = '../app/manicure/principal.html';
+      }, 2000);
+
+      return;
     } else {
+      let respostaJson;
       const resposta = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { 
@@ -407,37 +464,6 @@ async function loginUsuario() {
       }
     }
 
-    // Fecha o loading
-    Swal.close();
-
-    const user = respostaJson.user || respostaJson;
-    const nomeUsuario = user?.user_metadata?.nome || user?.nome || campoEmail;
-    const access_token = respostaJson.access_token || respostaJson.session?.access_token;
-
-    // Mantém apenas a sessão temporária; dados do perfil são buscados no backend
-    if (access_token) {
-      sessionStorage.setItem("token", access_token);
-    }
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Login realizado com sucesso!',
-      text: `Bem-vindo(a), ${nomeUsuario}!`,
-      toast: true,
-      position: toastPosition,
-      timer: 2000,
-      showConfirmButton: false
-    });
-
-    // Limpa os campos do formulário
-    document.querySelector("#login-email").value = "";
-    document.querySelector("#login-senha").value = "";
-
-    // Redireciona baseado no tipo de usuário
-    setTimeout(() => {
-      window.location.href = '../app/manicure/principal.html';
-    }, 2000);
-
   } catch (error) {
     // Trata erros de conexão de forma específica
     let mensagemErro = error.message;
@@ -445,7 +471,7 @@ async function loginUsuario() {
     
     if (error.status === 503) {
       tituloErro = 'Serviço indisponível';
-      mensagemErro = 'O Supabase está temporariamente indisponível. Tente novamente em alguns minutos.';
+      mensagemErro = 'O serviço de autenticação do Supabase está temporariamente indisponível. Tente novamente em alguns minutos.';
     }
 
     if (error.name === 'TypeError' || error.message.includes('fetch')) {
