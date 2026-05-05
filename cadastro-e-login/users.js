@@ -78,6 +78,40 @@ function gerarSlugBase(nome) {
     .replace(/^-+|-+$/g, "") || "manicure";
 }
 
+function getFriendlyAuthMessage(error, fallbackMessage) {
+  const rawMessage = String(error?.message || error?.msg || "").toLowerCase();
+
+  if (error?.status === 503 || rawMessage.includes("service unavailable")) {
+    return "O serviço está temporariamente indisponível. Tente novamente em alguns minutos.";
+  }
+
+  if (error?.status === 429 || rawMessage.includes("rate limit") || rawMessage.includes("too many")) {
+    return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  }
+
+  if (rawMessage.includes("email not confirmed") || rawMessage.includes("not confirmed")) {
+    return "Seu email ainda não foi confirmado. Verifique sua caixa de entrada.";
+  }
+
+  if (rawMessage.includes("invalid login credentials") || rawMessage.includes("authentication failed")) {
+    return "Email ou senha incorretos.";
+  }
+
+  if (rawMessage.includes("already registered") || rawMessage.includes("already exists") || rawMessage.includes("duplicate") || rawMessage.includes("unique")) {
+    return "Já existe uma conta com este email.";
+  }
+
+  if (rawMessage.includes("weak password") || rawMessage.includes("password")) {
+    return "A senha está muito fraca. Tente outra mais segura.";
+  }
+
+  if (error?.name === 'TypeError' || rawMessage.includes('fetch') || rawMessage.includes('network')) {
+    return "Não foi possível conectar. Verifique sua internet.";
+  }
+
+  return fallbackMessage || "Não foi possível concluir a operação. Tente novamente.";
+}
+
 async function adicionarUsuario() {
   // Verifica se é mobile para ajustar posição dos toasts
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -291,22 +325,8 @@ async function adicionarUsuario() {
     container.classList.remove('right-panel-active');
 
   } catch (error) {
-    // Trata erros de conexão de forma específica
-    let mensagemErro = error.message;
-    let tituloErro = 'Erro no cadastro';
-    
-    if (error.status === 503) {
-      tituloErro = 'Serviço indisponível';
-      mensagemErro = 'O Supabase está temporariamente indisponível. Tente novamente em alguns minutos.';
-    }
-
-    if (error.name === 'TypeError' || error.message.includes('fetch')) {
-      tituloErro = 'Sem conexão';
-      mensagemErro = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.';
-    } else if (error.message.includes('timeout')) {
-      tituloErro = 'Tempo esgotado';
-      mensagemErro = 'A conexão demorou muito para responder. Verifique sua internet e tente novamente.';
-    }
+    const tituloErro = error?.status === 503 ? 'Serviço indisponível' : 'Erro no cadastro';
+    const mensagemErro = getFriendlyAuthMessage(error, 'Não foi possível criar sua conta.');
     
     Swal.fire({
       icon: 'error',
@@ -465,22 +485,8 @@ async function loginUsuario() {
     }
 
   } catch (error) {
-    // Trata erros de conexão de forma específica
-    let mensagemErro = error.message;
-    let tituloErro = 'Erro no login';
-    
-    if (error.status === 503) {
-      tituloErro = 'Serviço indisponível';
-      mensagemErro = 'O serviço de autenticação do Supabase está temporariamente indisponível. Tente novamente em alguns minutos.';
-    }
-
-    if (error.name === 'TypeError' || error.message.includes('fetch')) {
-      tituloErro = 'Sem conexão';
-      mensagemErro = 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.';
-    } else if (error.message.includes('timeout')) {
-      tituloErro = 'Tempo esgotado';
-      mensagemErro = 'A conexão demorou muito para responder. Verifique sua internet e tente novamente.';
-    }
+    const tituloErro = error?.status === 503 ? 'Serviço indisponível' : 'Erro no login';
+    const mensagemErro = getFriendlyAuthMessage(error, 'Não foi possível fazer login.');
     
     Swal.fire({
       icon: 'error',

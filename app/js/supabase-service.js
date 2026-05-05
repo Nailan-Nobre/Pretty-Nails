@@ -118,6 +118,32 @@ window.PrettyNailsSupabase = (() => {
     });
   }
 
+  async function signOut() {
+    const client = window.__prettyNailsSupabaseClient;
+    if (client) {
+      try {
+        await client.auth.signOut({ scope: "global" });
+      } catch (_error) {
+        // Ignora falhas de logout remoto e segue limpando a sessão local.
+      }
+    }
+
+    sessionStorage.removeItem("token");
+
+    if (client && typeof client.removeAllChannels === "function") {
+      try {
+        client.removeAllChannels();
+      } catch (_error) {
+        // Sem efeito se não houver canais ativos.
+      }
+    }
+  }
+
+  async function logoutAndRedirect(redirectUrl) {
+    await signOut();
+    window.location.href = redirectUrl;
+  }
+
   function groupMonthlyAgendamentos(agendamentos, monthsBack = 5) {
     const months = [];
     const labels = [];
@@ -230,6 +256,8 @@ window.PrettyNailsSupabase = (() => {
     listCurrentManicureFeedbacks,
     getManicureBySlug,
     createPublicAgendamento,
+    signOut,
+    logoutAndRedirect,
     groupMonthlyAgendamentos,
     groupYearHistory,
     buildFeedbackSummary,

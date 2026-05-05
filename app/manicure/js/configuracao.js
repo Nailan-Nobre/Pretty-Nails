@@ -134,8 +134,15 @@ function showThemeFeedback(theme) {
 
 // Função de logout (compartilhada com outras telas)
 function logout() {
-    if (confirm("Tem certeza que deseja sair?")) {
-        sessionStorage.removeItem('token');
-        window.location.href = "../../cadastro-e-login/cadastro-e-login.html";
+    if (!confirm("Tem certeza que deseja sair?")) {
+        return;
     }
+
+    if (window.PrettyNailsSupabase?.logoutAndRedirect) {
+        window.PrettyNailsSupabase.logoutAndRedirect("../../cadastro-e-login/cadastro-e-login.html");
+        return;
+    }
+
+    sessionStorage.removeItem('token');
+    window.location.href = "../../cadastro-e-login/cadastro-e-login.html";
 }

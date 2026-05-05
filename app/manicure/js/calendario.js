@@ -339,6 +339,11 @@ class CalendarioAgendamentos {
 
 // Função de logout global
 function logout() {
+    if (window.PrettyNailsSupabase?.logoutAndRedirect) {
+        window.PrettyNailsSupabase.logoutAndRedirect('../../cadastro-e-login/cadastro-e-login.html');
+        return;
+    }
+
     sessionStorage.removeItem('token');
     window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
 }

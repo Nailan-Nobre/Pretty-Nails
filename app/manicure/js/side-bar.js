@@ -108,6 +108,11 @@ document.addEventListener('click', function (event) {
 
 // Logout
 document.getElementById('logout_btn').addEventListener('click', function () {
+    if (window.PrettyNailsSupabase?.logoutAndRedirect) {
+        window.PrettyNailsSupabase.logoutAndRedirect('../../cadastro-e-login/cadastro-e-login.html');
+        return;
+    }
+
     sessionStorage.removeItem('token');
     window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
 });
@@ -133,6 +138,11 @@ window.addEventListener('resize', handleResponsiveSidebar);
 
 // Função logout para ser chamada pelo HTML
 function logout() {
+    if (window.PrettyNailsSupabase?.logoutAndRedirect) {
+        window.PrettyNailsSupabase.logoutAndRedirect('../../cadastro-e-login/cadastro-e-login.html');
+        return;
+    }
+
     sessionStorage.removeItem('token');
     window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
 }
