@@ -26,22 +26,28 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     try {
-        const resposta = await fetch(`${API_BASE_URL}/auth/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const usuario = window.PrettyNailsSupabase?.isConfigured()
+            ? await window.PrettyNailsSupabase.getCurrentManicureProfile()
+            : await (async () => {
+                const resposta = await fetch(`${API_BASE_URL}/auth/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-        if (!resposta.ok) {
-            if (resposta.status === 401 || resposta.status === 403) {
-                exibirMensagemNoConsole('Permissão negada.');
-                window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
-            } else {
-                exibirMensagemNoConsole('Erro ao validar usuário');
-            }
-            return;
-        }
+                if (!resposta.ok) {
+                    if (resposta.status === 401 || resposta.status === 403) {
+                        exibirMensagemNoConsole('Permissão negada.');
+                        window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+                    } else {
+                        exibirMensagemNoConsole('Erro ao validar usuário');
+                    }
+                    return null;
+                }
 
-        const payload = await resposta.json();
-        const usuario = payload.user || payload;
+                const payload = await resposta.json();
+                return payload.user || payload;
+            })();
+
+        if (!usuario) return;
 
         // Exibir nome
         const primeiroNome = usuario.nome ? usuario.nome.split(' ')[0] : 'Usuário';

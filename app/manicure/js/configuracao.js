@@ -70,14 +70,19 @@ async function loadUserName() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const user = window.PrettyNailsSupabase?.isConfigured()
+            ? await window.PrettyNailsSupabase.getCurrentManicureProfile()
+            : await (async () => {
+                const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-        if (!response.ok) throw new Error('Erro ao carregar perfil');
+                if (!response.ok) throw new Error('Erro ao carregar perfil');
 
-        const payload = await response.json();
-        const user = payload.user || payload;
+                const payload = await response.json();
+                return payload.user || payload;
+            })();
+
         userNameElement.textContent = (user.nome || 'Manicure').split(' ')[0];
     } catch (error) {
         userNameElement.textContent = 'Manicure';

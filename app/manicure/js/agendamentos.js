@@ -252,7 +252,6 @@ async function handleAgendamentoAction(id, action, type) {
     }
 
     let status;
-    let endpoint = `${API_BASE_URL}/api/agendamentos/${id}/status`;
 
     switch(action) {
         case 'confirmar': status = 'confirmado'; break;
@@ -263,18 +262,22 @@ async function handleAgendamentoAction(id, action, type) {
     }
 
     try {
-        const response = await fetch(endpoint, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ status })
-        });
+        if (window.PrettyNailsSupabase?.isConfigured()) {
+            await window.PrettyNailsSupabase.updateAgendamentoStatus(id, status);
+        } else {
+            const endpoint = `${API_BASE_URL}/api/agendamentos/${id}/status`;
+            const response = await fetch(endpoint, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status })
+            });
 
-        if (!response.ok) throw new Error('Erro ao atualizar agendamento');
+            if (!response.ok) throw new Error('Erro ao atualizar agendamento');
+        }
 
-        const data = await response.json();
         showNotification(`Agendamento ${getActionSuccessMessage(action)}`, 'success');
 
         // Recarrega os agendamentos apropriados
@@ -307,6 +310,18 @@ async function loadAgendamentos() {
     }
 
     try {
+        if (window.PrettyNailsSupabase?.isConfigured()) {
+            const agendamentos = await window.PrettyNailsSupabase.listCurrentManicureAgendamentos();
+            const pendentes = (agendamentos || []).filter(item => item.status === 'pendente');
+            const confirmados = (agendamentos || []).filter(item => item.status === 'confirmado');
+            const historico = (agendamentos || []).filter(item => ['concluido', 'cancelado', 'recusado'].includes(item.status));
+
+            renderAgendamentos('pendentes-container', pendentes, 'pendentes');
+            renderAgendamentos('confirmados-container', confirmados, 'confirmados');
+            renderAgendamentos('historico-container', historico, 'historico');
+            return;
+        }
+
         // Pendentes
         const pendentesResponse = await fetch(`${API_BASE_URL}/api/agendamentos/pendentes`, {
             headers: { 'Authorization': `Bearer ${token}` }

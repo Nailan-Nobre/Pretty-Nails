@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // Configuração da API
     const API_BASE_URL = window.API_BASE_URL;
+    const supabase = window.PrettyNailsSupabase;
     
     // Elementos do DOM
     const workDaysContainer = document.getElementById('workDays');
@@ -29,20 +30,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        const profileResponse = await fetch(`${API_BASE_URL}/auth/profile`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        const profile = supabase?.isConfigured()
+            ? await supabase.getCurrentManicureProfile()
+            : await (async () => {
+                const profileResponse = await fetch(`${API_BASE_URL}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-        if (!profileResponse.ok) {
+                if (!profileResponse.ok) {
+                    window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+                    return null;
+                }
+
+                const profilePayload = await profileResponse.json();
+                return profilePayload.user || profilePayload;
+            })();
+
+        if (!profile) {
             window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
             return;
         }
 
-        const profilePayload = await profileResponse.json();
-        const profile = profilePayload.user || profilePayload;
         userId = profile.id;
         userType = profile.tipo || 'MANICURE';
 
@@ -110,6 +121,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Função para testar conectividade com a API
     async function testAPIConnection() {
+        if (supabase?.isConfigured()) {
+            return true;
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}/`, {
                 method: 'GET',
@@ -118,11 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
 
-            if (response.ok) {
-                return true;
-            } else {
-                return false;
-            }
+            return response.ok;
         } catch (error) {
             return false;
         }
@@ -170,15 +181,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Função para carregar estatísticas de agendamentos
     async function loadAgendamentosEstatisticas() {
-        // Primeiro, testar a conectividade
-        const apiOnline = await testAPIConnection();
-        if (!apiOnline) {
-            console.error('❌ API offline');
-            showEmptyChart('Servidor offline. Tente novamente mais tarde.');
-            return;
-        }
-
         try {
+            if (supabase?.isConfigured()) {
+                const agendamentos = await supabase.listCurrentManicureAgendamentos();
+                const estatisticas = supabase.groupMonthlyAgendamentos(agendamentos || [], 5);
+
+                if (estatisticas.totalConcluidos === 0 && estatisticas.totalCancelados === 0) {
+                    showEmptyChart('Nenhum agendamento encontrado nos últimos 5 meses');
+                } else {
+                    updateChart(estatisticas.labels, estatisticas.dadosConcluidos, estatisticas.dadosCancelados);
+                }
+                return;
+            }
+
             const response = await fetch(`${API_BASE_URL}/api/agendamentos/estatisticas`, {
                 method: 'GET',
                 headers: {
@@ -197,12 +212,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = await response.json();
-            
+
             if (data.success && data.estatisticas) {
-                // Verificar se há dados
                 const totalConcluidos = data.estatisticas.totalConcluidos || 0;
                 const totalCancelados = data.estatisticas.totalCancelados || 0;
-                
+
                 if (totalConcluidos === 0 && totalCancelados === 0) {
                     showEmptyChart('Nenhum agendamento encontrado nos últimos 5 meses');
                 } else {
@@ -251,6 +265,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Função para carregar dados do histórico
     async function loadHistoricoData(ano) {
         try {
+            if (supabase?.isConfigured()) {
+                const agendamentos = await supabase.listCurrentManicureAgendamentos();
+                const historico = supabase.groupYearHistory(agendamentos || [], ano);
+                availableYears = [ano];
+                updateYearSelector(ano);
+
+                if (historico.totalConcluidos === 0 && historico.totalCancelados === 0) {
+                    showEmptyHistoricoChart(`Nenhum agendamento encontrado em ${ano}`);
+                    updateHistoricoStats({ totalConcluidos: 0, totalCancelados: 0 });
+                } else {
+                    updateHistoricoChart(historico.labels, historico.dadosConcluidos, historico.dadosCancelados);
+                    updateHistoricoStats(historico);
+                }
+                return;
+            }
+
             const response = await fetch(`${API_BASE_URL}/api/agendamentos/historico-estatisticas?ano=${ano}`, {
                 method: 'GET',
                 headers: {
@@ -269,15 +299,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const data = await response.json();
-            
+
             if (data.success && data.historico) {
                 availableYears = data.historico.anosDisponiveis;
                 updateYearSelector(ano);
-                
-                // Verificar se há dados
+
                 const totalConcluidos = data.historico.totalConcluidos || 0;
                 const totalCancelados = data.historico.totalCancelados || 0;
-                
+
                 if (totalConcluidos === 0 && totalCancelados === 0) {
                     showEmptyHistoricoChart(`Nenhum agendamento encontrado em ${ano}`);
                     updateHistoricoStats({ totalConcluidos: 0, totalCancelados: 0 });
@@ -411,15 +440,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Carregar dados do perfil
     async function loadProfileData() {
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/usuario/${userId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const data = supabase?.isConfigured()
+                ? await supabase.getCurrentManicureProfile()
+                : await (async () => {
+                    const response = await fetch(`${API_BASE_URL}/auth/usuario/${userId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
 
-            if (!response.ok) throw new Error('Erro ao carregar perfil');
+                    if (!response.ok) throw new Error('Erro ao carregar perfil');
 
-            const data = await response.json();
+                    return await response.json();
+                })();
 
             // Dias de trabalho - mostrar todos os dias com os selecionados destacados
             const diasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -513,21 +546,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Função para carregar feedbacks
     async function loadFeedbacks() {
         try {
-            const response = await fetch(`${API_BASE_URL}/feedback/manicure/${userId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                    // Removendo Authorization já que a rota é pública
-                }
-            });
+            const feedbacks = supabase?.isConfigured()
+                ? await supabase.listCurrentManicureFeedbacks()
+                : await (async () => {
+                    const response = await fetch(`${API_BASE_URL}/feedback/manicure/${userId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
 
-            if (!response.ok) {
-                throw new Error(`Erro ao carregar feedbacks: ${response.status}`);
-            }
+                    if (!response.ok) {
+                        throw new Error(`Erro ao carregar feedbacks: ${response.status}`);
+                    }
 
-            const data = await response.json();
-            
-            const feedbacks = data.feedbacks || [];
+                    const data = await response.json();
+                    return data.feedbacks || [];
+                })();
 
             displayFeedbacks(feedbacks);
 

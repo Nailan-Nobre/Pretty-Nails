@@ -1,5 +1,3 @@
-const API_BASE_URL = window.API_BASE_URL;
-
 const state = {
   manicure: null,
   selectedSlot: null,
@@ -59,15 +57,26 @@ async function carregarManicure(slug) {
   renderStatus('Carregando dados da manicure...', 'info');
 
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/manicure/${encodeURIComponent(slug)}`);
-    const data = await response.json();
+    if (window.PrettyNailsSupabase?.isConfigured()) {
+      const manicure = await window.PrettyNailsSupabase.getManicureBySlug(slug);
+      if (!manicure) {
+        throw new Error('Não foi possível carregar a manicure');
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Não foi possível carregar a manicure');
+      state.manicure = manicure;
+      preencherTela(manicure);
+    } else {
+      const response = await fetch(`${window.API_BASE_URL}/auth/manicure/${encodeURIComponent(slug)}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Não foi possível carregar a manicure');
+      }
+
+      state.manicure = data.manicure;
+      preencherTela(data.manicure);
     }
 
-    state.manicure = data.manicure;
-    preencherTela(data.manicure);
     renderStatus('Manicure carregada com sucesso.', 'success');
   } catch (error) {
     renderStatus(error.message || 'Erro ao carregar manicure', 'error');
@@ -172,27 +181,43 @@ async function agendarCliente() {
 
     const dataHora = montarDataHoraAgendamento(data, state.selectedSlot);
 
-    const response = await fetch(`${API_BASE_URL}/api/agendamentos/public`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        slug,
-        dataHora: dataHora.toISOString(),
+    if (window.PrettyNailsSupabase?.isConfigured()) {
+      await window.PrettyNailsSupabase.createPublicAgendamento({
+        manicure_id: state.manicure.id,
+        cliente_nome: nome,
+        cliente_email: email,
+        cliente_cpf: cpf,
+        cliente_telefone: telefone,
+        data_hora: dataHora.toISOString(),
         servico,
         observacoes,
-        clienteNome: nome,
-        clienteEmail: email,
-        clienteCpf: cpf,
-        clienteTelefone: telefone
-      })
-    });
+        valor: null,
+        status: 'pendente',
+        avaliado: false
+      });
+    } else {
+      const response = await fetch(`${window.API_BASE_URL}/api/agendamentos/public`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          slug,
+          dataHora: dataHora.toISOString(),
+          servico,
+          observacoes,
+          clienteNome: nome,
+          clienteEmail: email,
+          clienteCpf: cpf,
+          clienteTelefone: telefone
+        })
+      });
 
-    const resultado = await response.json();
+      const resultado = await response.json();
 
-    if (!response.ok) {
-      throw new Error(resultado.error || 'Não foi possível concluir o agendamento');
+      if (!response.ok) {
+        throw new Error(resultado.error || 'Não foi possível concluir o agendamento');
+      }
     }
 
     Swal.fire({

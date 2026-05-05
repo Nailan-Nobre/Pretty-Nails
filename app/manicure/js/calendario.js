@@ -67,14 +67,20 @@ class CalendarioAgendamentos {
         if (!token) return;
 
         try {
-            const response = await fetch(`${window.API_BASE_URL}/auth/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const userData = window.PrettyNailsSupabase?.isConfigured()
+                ? await window.PrettyNailsSupabase.getCurrentManicureProfile()
+                : await (async () => {
+                    const response = await fetch(`${window.API_BASE_URL}/auth/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
 
-            if (!response.ok) return;
+                    if (!response.ok) return null;
 
-            const payload = await response.json();
-            const userData = payload.user || payload;
+                    const payload = await response.json();
+                    return payload.user || payload;
+                })();
+
+            if (!userData) return;
             if (userData.nome) {
                 const userNameEl = document.getElementById('user-name');
                 if (userNameEl) {
@@ -91,6 +97,11 @@ class CalendarioAgendamentos {
             const token = sessionStorage.getItem('token');
             if (!token) {
                 throw new Error('Token não encontrado');
+            }
+
+            if (window.PrettyNailsSupabase?.isConfigured()) {
+                this.agendamentos = await window.PrettyNailsSupabase.listCurrentManicureAgendamentos();
+                return;
             }
 
             // Buscar agendamentos pendentes, confirmados e histórico
@@ -271,17 +282,21 @@ class CalendarioAgendamentos {
     async atualizarStatusAgendamento(agendamentoId, novoStatus) {
         try {
             const token = sessionStorage.getItem('token');
-            const response = await fetch(`${window.API_BASE_URL}/api/agendamentos/${agendamentoId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status: novoStatus })
-            });
+            if (window.PrettyNailsSupabase?.isConfigured()) {
+                await window.PrettyNailsSupabase.updateAgendamentoStatus(agendamentoId, novoStatus);
+            } else {
+                const response = await fetch(`${window.API_BASE_URL}/api/agendamentos/${agendamentoId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: novoStatus })
+                });
 
-            if (!response.ok) {
-                throw new Error('Erro ao atualizar status');
+                if (!response.ok) {
+                    throw new Error('Erro ao atualizar status');
+                }
             }
 
             // Recarregar agendamentos e calendário

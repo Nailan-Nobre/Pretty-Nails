@@ -98,6 +98,7 @@ function configurarTelefoneModal() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    const supabase = window.PrettyNailsSupabase;
     // Elementos do DOM
     const foto = document.getElementById('foto');
     const nome = document.getElementById('nome');
@@ -223,16 +224,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Carregar dados do perfil
     async function loadProfileData() {
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const data = supabase?.isConfigured()
+                ? await supabase.getCurrentManicureProfile()
+                : await (async () => {
+                    const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
 
-            if (!response.ok) throw new Error('Erro ao carregar perfil');
+                    if (!response.ok) throw new Error('Erro ao carregar perfil');
 
-            const payload = await response.json();
-            const data = payload.user || payload;
+                    const payload = await response.json();
+                    return payload.user || payload;
+                })();
 
             // Preencher dados na tela (com tratamento correto da foto)
             foto.src = data.foto ? `${data.foto}?${Date.now()}` : 'imagens/user.png';
@@ -457,32 +462,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (nome) servicos.push({ nome, preco: preco || null });
             });
 
-            // Foto (se mudou)
-            let fotoUrl = editPhotoPreview.src;
-            let fotoAntiga = foto.src.includes('imagens/user.png') ? null : foto.src;
-
-            if (fotoUrl.startsWith('data:')) {
-                const response = await fetch(`${API_BASE_URL}/auth/upload`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        image: fotoUrl,
-                        fotoAntiga: fotoAntiga
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Erro ao enviar imagem');
-                }
-
-                const result = await response.json();
-                fotoUrl = result.url;
-            }
-
             // Montar objeto com dados atualizados
             const profileData = {
                 nome: editName.value,
@@ -494,28 +473,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 servicos: servicos
             };
 
-            // Só envia a foto se não for a imagem padrão
-            if (fotoUrl && !fotoUrl.includes('imagens/user.png')) {
-                profileData.foto = fotoUrl.split('?')[0]; // Remove o timestamp
+            const fotoUrl = editPhotoPreview.src && !editPhotoPreview.src.includes('imagens/user.png')
+                ? editPhotoPreview.src.split('?')[0]
+                : null;
+
+            profileData.foto = fotoUrl;
+
+            if (supabase?.isConfigured()) {
+                await supabase.updateCurrentManicureProfile(profileData);
             } else {
-                profileData.foto = null;
+                const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(profileData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Erro ao atualizar perfil');
+                }
             }
 
-            const response = await fetch(`${API_BASE_URL}/auth/profile`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(profileData)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Erro ao atualizar perfil');
-            }
-
-            const updatedData = await response.json();
             showNotification('Perfil atualizado com sucesso!', 'success');
 
             toggleModal(editModal, false);
