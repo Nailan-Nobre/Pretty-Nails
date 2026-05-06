@@ -78,15 +78,57 @@ function gerarSlugBase(nome) {
     .replace(/^-+|-+$/g, "") || "manicure";
 }
 
+const CADASTRO_COOLDOWN_MS = 5 * 60 * 1000;
+
+function getCadastroCooldownKey(email) {
+  return `prettyNailsCadastroCooldown:${String(email || "").toLowerCase()}`;
+}
+
+function getCadastroCooldownRemaining(email) {
+  const key = getCadastroCooldownKey(email);
+  const lastAttempt = Number(localStorage.getItem(key));
+
+  if (!Number.isFinite(lastAttempt) || lastAttempt <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, CADASTRO_COOLDOWN_MS - (Date.now() - lastAttempt));
+}
+
+function markCadastroAttempt(email) {
+  localStorage.setItem(getCadastroCooldownKey(email), String(Date.now()));
+}
+
+function clearCadastroAttempt(email) {
+  localStorage.removeItem(getCadastroCooldownKey(email));
+}
+
+function formatCooldownMessage(milliseconds) {
+  const seconds = Math.max(1, Math.ceil(milliseconds / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes > 0) {
+    return remainingSeconds > 0
+      ? `${minutes} minuto${minutes === 1 ? "" : "s"} e ${remainingSeconds} segundo${remainingSeconds === 1 ? "" : "s"}`
+      : `${minutes} minuto${minutes === 1 ? "" : "s"}`;
+  }
+
+  return `${remainingSeconds} segundo${remainingSeconds === 1 ? "" : "s"}`;
+}
+
+function setCadastroButtonState(disabled) {
+  const botaoCadastro = document.querySelector(".sign-up-container button");
+  if (botaoCadastro) {
+    botaoCadastro.disabled = disabled;
+  }
+}
+
 function getFriendlyAuthMessage(error, fallbackMessage) {
   const rawMessage = String(error?.message || error?.msg || "").toLowerCase();
 
   if (error?.status === 503 || rawMessage.includes("service unavailable")) {
     return "O serviço está temporariamente indisponível. Tente novamente em alguns minutos.";
-  }
-
-  if (error?.status === 429 || rawMessage.includes("rate limit") || rawMessage.includes("too many")) {
-    return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
   }
 
   if (rawMessage.includes("email not confirmed") || rawMessage.includes("not confirmed")) {
@@ -125,6 +167,19 @@ async function adicionarUsuario() {
   const campoEstado = document.querySelector("#estado")?.value || "";
   const campoCidade = document.querySelector("#cidade")?.value || "";
   const campoTipo = "MANICURE";
+
+  if (window.__prettyNailsCadastroEmAndamento) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Aguarde um instante',
+      text: 'Estamos processando seu cadastro.',
+      toast: true,
+      position: toastPosition,
+      timer: 2500,
+      showConfirmButton: false
+    });
+    return;
+  }
 
   // Validação de senha
   if (campoSenha.length < 6) {
@@ -183,6 +238,20 @@ async function adicionarUsuario() {
     return;
   }
 
+  const cooldownRemaining = getCadastroCooldownRemaining(campoEmail);
+  if (cooldownRemaining > 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'Cadastro em espera',
+      text: `Aguarde ${formatCooldownMessage(cooldownRemaining)} antes de tentar novamente com este email.`,
+      toast: true,
+      position: toastPosition,
+      timer: 4000,
+      showConfirmButton: false
+    });
+    return;
+  }
+
   const usuario = {
     nome: campoNome,
     email: campoEmail,
@@ -194,6 +263,9 @@ async function adicionarUsuario() {
   };
 
   try {
+    window.__prettyNailsCadastroEmAndamento = true;
+    setCadastroButtonState(true);
+
     // Mostra loading (usando modal normal)
     Swal.fire({
       title: 'Criando sua conta...',
@@ -229,27 +301,6 @@ async function adicionarUsuario() {
       if (!novoUsuario?.id) {
         throw new Error("Não foi possível criar sua conta no Supabase.");
       }
-
-      const slugBase = gerarSlugBase(campoNome);
-      const slugSufixo = novoUsuario.id.slice(0, 8);
-
-      await supabaseRequest("/rest/v1/manicures", {
-        method: "POST",
-        headers: {
-          Prefer: "return=minimal"
-        },
-        body: {
-          id: novoUsuario.id,
-          email: campoEmail,
-          nome: campoNome,
-          telefone: campoTelefone,
-          estado: campoEstado,
-          cidade: campoCidade,
-          slug: `${slugBase}-${slugSufixo}`,
-          ativa: true,
-          bio: ""
-        }
-      });
     } else {
       const resposta = await fetch(`${API_BASE_URL}/auth/signup`, {
         method: "POST",
@@ -269,8 +320,8 @@ async function adicionarUsuario() {
         
         if (resposta.status === 409) {
           mensagemErro = data.error || "Já existe uma conta cadastrada com este email. Tente fazer login.";
-        } else if (resposta.status === 429 || data.error?.toLowerCase().includes('rate limit')) {
-          mensagemErro = data.error || "Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.";
+        } else if (resposta.status === 429) {
+          mensagemErro = data.error || "Não foi possível concluir o cadastro. Por favor, tente novamente.";
         } else if (resposta.status === 400) {
           // Erro de validação
           if (data.error?.toLowerCase().includes('senha')) {
@@ -320,6 +371,7 @@ async function adicionarUsuario() {
     document.querySelector("#telefone").value = "";
     document.querySelector("#estado").value = "";
     document.querySelector("#cidade").value = "";
+    clearCadastroAttempt(campoEmail);
     // Volta para o formulário de login
     const container = document.getElementById('container');
     container.classList.remove('right-panel-active');
@@ -327,6 +379,21 @@ async function adicionarUsuario() {
   } catch (error) {
     const tituloErro = error?.status === 503 ? 'Serviço indisponível' : 'Erro no cadastro';
     const mensagemErro = getFriendlyAuthMessage(error, 'Não foi possível criar sua conta.');
+    const isRateLimit = error?.status === 429 || String(error?.message || '').toLowerCase().includes('rate limit');
+
+    if (isRateLimit) {
+      markCadastroAttempt(campoEmail);
+      Swal.fire({
+        icon: 'info',
+        title: 'Cadastro em espera',
+        text: 'Esse email foi usado recentemente. Aguarde alguns minutos antes de tentar novamente.',
+        toast: true,
+        position: toastPosition,
+        timer: 4500,
+        showConfirmButton: false
+      });
+      return;
+    }
     
     Swal.fire({
       icon: 'error',
@@ -338,6 +405,9 @@ async function adicionarUsuario() {
       showConfirmButton: false
     });
     console.error("Erro ao cadastrar usuário:", error);
+  } finally {
+    window.__prettyNailsCadastroEmAndamento = false;
+    setCadastroButtonState(false);
   }
 }
 
@@ -471,7 +541,7 @@ async function loginUsuario() {
         } else if (resposta.status === 404) {
           mensagemErro = "Não encontramos uma conta com este email. Verifique o email digitado ou crie uma nova conta.";
         } else if (resposta.status === 429) {
-          mensagemErro = "Você fez muitas tentativas de login. Por favor, aguarde alguns minutos antes de tentar novamente.";
+          mensagemErro = "Não foi possível fazer login. Por favor, tente novamente.";
         } else if (resposta.status === 500) {
           mensagemErro = "Ocorreu um problema em nosso servidor. Por favor, tente novamente em alguns instantes.";
         } else if (resposta.status === 503) {

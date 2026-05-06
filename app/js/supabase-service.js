@@ -128,7 +128,15 @@ window.PrettyNailsSupabase = (() => {
       }
     }
 
-    sessionStorage.removeItem("token");
+    try {
+      sessionStorage.clear();
+      localStorage.clear();
+    } catch (_error) {
+      // Se o navegador bloquear alguma operação, ainda seguimos com o logout.
+      sessionStorage.removeItem("token");
+    }
+
+    window.__prettyNailsSupabaseClient = null;
 
     if (client && typeof client.removeAllChannels === "function") {
       try {
