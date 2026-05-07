@@ -554,9 +554,39 @@ async function loginUsuario() {
         
         throw new Error(mensagemErro);
       }
+
+      const access_token = respostaJson?.access_token || respostaJson?.session?.access_token || "";
+      const user = respostaJson?.user || {};
+      const nomeUsuario = user?.nome || user?.email || campoEmail;
+
+      Swal.close();
+
+      if (access_token) {
+        sessionStorage.setItem("token", access_token);
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Login realizado com sucesso!',
+        text: `Bem-vindo(a), ${nomeUsuario}!`,
+        toast: true,
+        position: toastPosition,
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      document.querySelector("#login-email").value = "";
+      document.querySelector("#login-senha").value = "";
+
+      setTimeout(() => {
+        window.location.href = '../app/manicure/principal.html';
+      }, 2000);
+
+      return;
     }
 
   } catch (error) {
+    Swal.close();
     const tituloErro = error?.status === 503 ? 'Serviço indisponível' : 'Erro no login';
     const mensagemErro = getFriendlyAuthMessage(error, 'Não foi possível fazer login.');
     
@@ -570,5 +600,7 @@ async function loginUsuario() {
       showConfirmButton: false
     });
     console.error("Erro ao fazer login:", error);
+  } finally {
+    window.__prettyNailsLoginEmAndamento = false;
   }
 }
