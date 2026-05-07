@@ -352,12 +352,14 @@ async function adicionarUsuario() {
       sessionStorage.setItem("token", novoToken);
     }
 
+    const successText = responseData?.message || (isSupabaseConfigured() && !novoToken
+      ? 'Sua conta foi criada. Verifique seu email para confirmar o acesso.'
+      : 'Sua conta foi criada com sucesso. Agora você já pode entrar.');
+
     Swal.fire({
       icon: 'success',
       title: 'Cadastro concluído',
-      text: isSupabaseConfigured() && !novoToken
-        ? 'Sua conta foi criada. Verifique seu email para confirmar o acesso.'
-        : 'Sua conta foi criada com sucesso. Agora você já pode entrar.',
+      text: successText,
       toast: true,
       position: toastPosition,
       timer: 3000,
