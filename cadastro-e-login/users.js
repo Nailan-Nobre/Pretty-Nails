@@ -154,6 +154,26 @@ function getFriendlyAuthMessage(error, fallbackMessage) {
   return fallbackMessage || "Não foi possível concluir a operação. Tente novamente.";
 }
 
+function sleep(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function fetchWithRetry(url, options, retries = 1, delayMilliseconds = 3000) {
+  let lastResponse = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    lastResponse = await fetch(url, options);
+
+    if (lastResponse.status !== 503 || attempt === retries) {
+      return lastResponse;
+    }
+
+    await sleep(delayMilliseconds);
+  }
+
+  return lastResponse;
+}
+
 async function adicionarUsuario() {
   // Verifica se é mobile para ajustar posição dos toasts
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
@@ -302,7 +322,7 @@ async function adicionarUsuario() {
         throw new Error("Não foi possível criar sua conta no Supabase.");
       }
     } else {
-      const resposta = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const resposta = await fetchWithRetry(`${API_BASE_URL}/auth/signup`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -516,7 +536,7 @@ async function loginUsuario() {
       return;
     } else {
       let respostaJson;
-      const resposta = await fetch(`${API_BASE_URL}/auth/login`, {
+      const resposta = await fetchWithRetry(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
