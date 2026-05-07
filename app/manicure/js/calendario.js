@@ -18,7 +18,7 @@ class CalendarioAgendamentos {
             // Verificar se usuário está logado
             const token = sessionStorage.getItem('token');
             if (!token) {
-                window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+                window.location.href = '../../index.html';
                 return;
             }
 
@@ -340,12 +340,12 @@ class CalendarioAgendamentos {
 // Função de logout global
 function logout() {
     if (window.PrettyNailsSupabase?.logoutAndRedirect) {
-        window.PrettyNailsSupabase.logoutAndRedirect('../../cadastro-e-login/cadastro-e-login.html');
+        window.PrettyNailsSupabase.logoutAndRedirect('../../index.html');
         return;
     }
 
     sessionStorage.removeItem('token');
-    window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+    window.location.href = '../../index.html';
 }
 
 // Inicializar quando a página carregar

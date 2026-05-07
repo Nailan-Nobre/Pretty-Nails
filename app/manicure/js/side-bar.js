@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Verificação completa de autenticação
     if (!token) {
         exibirMensagemNoConsole('Acesso restrito. Faça login para continuar.');
-        window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+        window.location.href = '../../index.html';
         return;
     }
 
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                 if (!resposta.ok) {
                     if (resposta.status === 401 || resposta.status === 403) {
                         exibirMensagemNoConsole('Permissão negada.');
-                        window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+                        window.location.href = '../../index.html';
                     } else {
                         exibirMensagemNoConsole('Erro ao validar usuário');
                     }
@@ -109,12 +109,12 @@ document.addEventListener('click', function (event) {
 // Logout
 document.getElementById('logout_btn').addEventListener('click', function () {
     if (window.PrettyNailsSupabase?.logoutAndRedirect) {
-        window.PrettyNailsSupabase.logoutAndRedirect('../../cadastro-e-login/cadastro-e-login.html');
+        window.PrettyNailsSupabase.logoutAndRedirect('../../index.html');
         return;
     }
 
     sessionStorage.removeItem('token');
-    window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+    window.location.href = '../../index.html';
 });
 
 // Adicione esta função para lidar com a responsividade
@@ -139,10 +139,10 @@ window.addEventListener('resize', handleResponsiveSidebar);
 // Função logout para ser chamada pelo HTML
 function logout() {
     if (window.PrettyNailsSupabase?.logoutAndRedirect) {
-        window.PrettyNailsSupabase.logoutAndRedirect('../../cadastro-e-login/cadastro-e-login.html');
+        window.PrettyNailsSupabase.logoutAndRedirect('../../index.html');
         return;
     }
 
     sessionStorage.removeItem('token');
-    window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+    window.location.href = '../../index.html';
 }

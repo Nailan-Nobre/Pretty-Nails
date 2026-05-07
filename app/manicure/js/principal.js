@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let userType = '';
 
     if (!token) {
-        window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+        window.location.href = '../../index.html';
         return;
     }
 
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 if (!profileResponse.ok) {
-                    window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+                    window.location.href = '../../index.html';
                     return null;
                 }
 
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             })();
 
         if (!profile) {
-            window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+            window.location.href = '../../index.html';
             return;
         }
 
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error('Erro ao carregar perfil:', error);
-        window.location.href = '../../cadastro-e-login/cadastro-e-login.html';
+        window.location.href = '../../index.html';
         return;
     }
 

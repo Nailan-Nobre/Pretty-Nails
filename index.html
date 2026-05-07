@@ -10,17 +10,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         (function () {
-            const appVersion = '20260506-2';
+            const appVersion = '20260506-3';
             window.__prettyNailsVersion = appVersion;
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const versionSuffix = '?v=' + encodeURIComponent(appVersion);
-            const cssHref = (isLocalhost ? 'cadastro-e-login.css' : '/cadastro-e-login/cadastro-e-login.css') + versionSuffix;
-            const configSrc = (isLocalhost ? '../config.js' : '/config.js') + versionSuffix;
+            const cssHref = 'index.css' + versionSuffix;
+            const configSrc = 'config.js' + versionSuffix;
             document.write('<link rel="stylesheet" href="' + cssHref + '">');
             document.write('<script src="' + configSrc + '"><\/script>');
 
-            // Evita cache antigo de Service Worker no Vercel que pode servir JS desatualizado.
-            if (!isLocalhost && 'serviceWorker' in navigator) {
+            // Remove SWs antigos para evitar cache de JS desatualizado no desktop.
+            if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                     navigator.serviceWorker.getRegistrations()
                         .then((registrations) => {
@@ -119,11 +118,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
     <script>
         (function () {
-            const appVersion = window.__prettyNailsVersion || '20260506-2';
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const appVersion = window.__prettyNailsVersion || '20260506-3';
             const versionSuffix = '?v=' + encodeURIComponent(appVersion);
-            const cadastroScript = (isLocalhost ? 'cadastro-e-login.js' : '/cadastro-e-login/cadastro-e-login.js') + versionSuffix;
-            const usersScript = (isLocalhost ? 'users.js' : '/cadastro-e-login/users.js') + versionSuffix;
+            const cadastroScript = 'index.js' + versionSuffix;
+            const usersScript = 'users.js' + versionSuffix;
             document.write('<script src="' + cadastroScript + '"><\/script>');
             document.write('<script src="' + usersScript + '"><\/script>');
         })();

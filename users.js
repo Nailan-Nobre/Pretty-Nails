@@ -379,6 +379,7 @@ async function adicionarUsuario() {
     container.classList.remove('right-panel-active');
 
   } catch (error) {
+    Swal.close();
     const tituloErro = error?.status === 503 ? 'Serviço indisponível' : 'Erro no cadastro';
     const mensagemErro = getFriendlyAuthMessage(error, 'Não foi possível criar sua conta.');
     const isRateLimit = error?.status === 429 || String(error?.message || '').toLowerCase().includes('rate limit');
@@ -510,7 +511,7 @@ async function loginUsuario() {
       document.querySelector("#login-senha").value = "";
 
       setTimeout(() => {
-        window.location.href = '../app/manicure/principal.html';
+        window.location.href = 'app/manicure/principal.html';
       }, 2000);
 
       return;
@@ -579,7 +580,7 @@ async function loginUsuario() {
       document.querySelector("#login-senha").value = "";
 
       setTimeout(() => {
-        window.location.href = '../app/manicure/principal.html';
+        window.location.href = 'app/manicure/principal.html';
       }, 2000);
 
       return;
