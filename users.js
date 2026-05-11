@@ -1,7 +1,33 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Mantém apenas o ajuste de viewport no carregamento da página.
   adjustViewportHeight();
+  inicializarTelaAutenticacao();
 });
+
+async function inicializarTelaAutenticacao() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json, text/plain, */*'
+      },
+      cache: 'no-store'
+    });
+
+    const texto = await response.text();
+    window.__prettyNailsApiWarmup = {
+      ok: response.ok,
+      status: response.status,
+      text: texto
+    };
+  } catch (error) {
+    window.__prettyNailsApiWarmup = {
+      ok: false,
+      error: String(error?.message || error)
+    };
+    console.warn('Falha ao inicializar a API da tela de autenticação:', error);
+  }
+}
 
 function isSupabaseConfigured() {
   return Boolean(window.SUPABASE_URL && window.SUPABASE_ANON_KEY);
@@ -279,68 +305,44 @@ async function adicionarUsuario() {
 
     let responseData;
 
-    if (isSupabaseConfigured()) {
-      responseData = await supabaseRequest("/auth/v1/signup", {
-        method: "POST",
-        body: {
-          email: campoEmail,
-          password: campoSenha,
-          options: {
-            data: {
-              nome: campoNome,
-              telefone: campoTelefone,
-              estado: campoEstado,
-              cidade: campoCidade,
-              tipo: campoTipo
-            }
-          }
-        }
-      });
+    const resposta = await fetch(`${API_BASE_URL}/auth/signup`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(usuario)
+    });
 
-      const novoUsuario = responseData?.user;
-      if (!novoUsuario?.id) {
-        throw new Error("Não foi possível criar sua conta no Supabase.");
-      }
-    } else {
-      const resposta = await fetch(`${API_BASE_URL}/auth/signup`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(usuario)
-      });
+    const data = await resposta.json();
+    responseData = data;
 
-      const data = await resposta.json();
-      responseData = data;
-
-      if (!resposta.ok) {
-        // Trata diferentes tipos de erro de forma específica
-        let mensagemErro = "Não foi possível criar sua conta. Por favor, tente novamente.";
-        
-        if (resposta.status === 409) {
-          mensagemErro = data.error || "Já existe uma conta cadastrada com este email. Tente fazer login.";
-        } else if (resposta.status === 429) {
-          mensagemErro = data.error || "Não foi possível concluir o cadastro. Por favor, tente novamente.";
-        } else if (resposta.status === 400) {
-          // Erro de validação
-          if (data.error?.toLowerCase().includes('senha')) {
-            mensagemErro = "A senha informada não atende aos requisitos de segurança.";
-          } else if (data.error?.toLowerCase().includes('telefone')) {
-            mensagemErro = "O número de telefone informado já está em uso ou é inválido.";
-          } else {
-            mensagemErro = data.error || data.message || "Alguns dados informados são inválidos. Verifique e tente novamente.";
-          }
-        } else if (resposta.status === 500) {
-          mensagemErro = "Ocorreu um problema em nosso servidor. Por favor, tente novamente em alguns instantes.";
-        } else if (resposta.status === 503) {
-          mensagemErro = "Nosso sistema está temporariamente indisponível. Tente novamente em alguns minutos.";
+    if (!resposta.ok) {
+      // Trata diferentes tipos de erro de forma específica
+      let mensagemErro = "Não foi possível criar sua conta. Por favor, tente novamente.";
+      
+      if (resposta.status === 409) {
+        mensagemErro = data.error || "Já existe uma conta cadastrada com este email. Tente fazer login.";
+      } else if (resposta.status === 429) {
+        mensagemErro = data.error || "Não foi possível concluir o cadastro. Por favor, tente novamente.";
+      } else if (resposta.status === 400) {
+        // Erro de validação
+        if (data.error?.toLowerCase().includes('senha')) {
+          mensagemErro = "A senha informada não atende aos requisitos de segurança.";
+        } else if (data.error?.toLowerCase().includes('telefone')) {
+          mensagemErro = "O número de telefone informado já está em uso ou é inválido.";
         } else {
-          mensagemErro = data.error || data.message || mensagemErro;
+          mensagemErro = data.error || data.message || "Alguns dados informados são inválidos. Verifique e tente novamente.";
         }
-        
-        throw new Error(mensagemErro);
+      } else if (resposta.status === 500) {
+        mensagemErro = "Ocorreu um problema em nosso servidor. Por favor, tente novamente em alguns instantes.";
+      } else if (resposta.status === 503) {
+        mensagemErro = "Nosso sistema está temporariamente indisponível. Tente novamente em alguns minutos.";
+      } else {
+        mensagemErro = data.error || data.message || mensagemErro;
       }
+      
+      throw new Error(mensagemErro);
     }
 
     // Fecha o loading
@@ -352,9 +354,7 @@ async function adicionarUsuario() {
       sessionStorage.setItem("token", novoToken);
     }
 
-    const successText = responseData?.message || (isSupabaseConfigured() && !novoToken
-      ? 'Sua conta foi criada. Verifique seu email para confirmar o acesso.'
-      : 'Sua conta foi criada com sucesso. Agora você já pode entrar.');
+    const successText = responseData?.message || 'Cadastro realizado com sucesso. Você já pode usar a conta depois de confirmar seu e-mail.';
 
     Swal.fire({
       icon: 'success',
