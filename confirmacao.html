@@ -57,10 +57,15 @@
       display: flex;
       flex-direction: column;
       gap: 15px;
+      align-items: center;
     }
 
     .botao-voltar {
-      background-color: var(--tom1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 220px;
+      background-color: #f49ca0;
       color: #fff;
       padding: 12px 24px;
       border: none;
@@ -69,10 +74,11 @@
       cursor: pointer;
       text-decoration: none;
       transition: background 0.3s ease;
+      box-shadow: 0 8px 18px rgba(244, 156, 160, 0.35);
     }
 
     .botao-voltar:hover {
-      background-color: var(--tom2);
+      background-color: #e7848b;
     }
 
     @media (max-width: 480px) {
